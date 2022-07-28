@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     private List<String> accList = new ArrayList<>();
     private List<String> gyroList = new ArrayList<>();
     MediaPlayer player = new MediaPlayer();
+    private boolean playingSound;
 
 
     final SensorEventListener accSensorEventListener = new SensorEventListener() {
@@ -47,7 +48,8 @@ public class MainActivity extends Activity {
             float x = sensorEvent.values[0];
             float y = sensorEvent.values[1];
             float z = sensorEvent.values[2];
-            if (y > 5) {
+            if (y > 5 && !playingSound) {
+                playingSound = true;
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
@@ -55,6 +57,19 @@ public class MainActivity extends Activity {
                         playNetSwishSound();
                     }
                 });
+
+                CountDownTimer startTimer = new CountDownTimer(4000, 1){
+                    @Override
+                    public void onFinish() {
+                        playingSound = false;
+                    }
+
+                    @Override
+                    public void onTick(long l) {
+                        //do nothing
+                    }
+                };
+                startTimer.start();
             }
             String accString = x + "," + y + "," + z;
             accList.add(accString);
