@@ -38,8 +38,7 @@ public class MainActivity extends Activity {
     ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
     private List<String> accList = new ArrayList<>();
     private List<String> gyroList = new ArrayList<>();
-    MediaPlayer player = new MediaPlayer();
-    private boolean playingSound;
+    private SoundPlayer soundPlayer = new SoundPlayer(this);
 
 
     final SensorEventListener accSensorEventListener = new SensorEventListener() {
@@ -48,28 +47,9 @@ public class MainActivity extends Activity {
             float x = sensorEvent.values[0];
             float y = sensorEvent.values[1];
             float z = sensorEvent.values[2];
-            if (y > 5 && !playingSound) {
-                playingSound = true;
-                new Handler(Looper.getMainLooper()).post(new Runnable() {
-                    @Override
-                    public void run() {
-                        imageView.setVisibility(View.VISIBLE);
-                        playNetSwishSound();
-                    }
-                });
-
-                CountDownTimer startTimer = new CountDownTimer(4000, 1){
-                    @Override
-                    public void onFinish() {
-                        playingSound = false;
-                    }
-
-                    @Override
-                    public void onTick(long l) {
-                        //do nothing
-                    }
-                };
-                startTimer.start();
+            if ((y > 2 || y < -2) && !soundPlayer.isPlaying()) {
+                soundPlayer.tryPlaySound();
+                new Handler(Looper.getMainLooper()).post(() -> imageView.setVisibility(View.VISIBLE));
             }
             String accString = x + "," + y + "," + z;
             accList.add(accString);
@@ -237,21 +217,5 @@ public class MainActivity extends Activity {
                 }
             }
         }).start();
-    }
-
-    public void playNetSwishSound(){
-        try {
-            if (player != null) {
-                player.release();
-                player = null;
-            }
-            player = new MediaPlayer();
-            AssetFileDescriptor afd = getAssets().openFd("haha.mp3");
-            player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-            player.prepare();
-            player.start();
-        }catch (Exception e) {
-            Log.e("richard", e.toString());
-        }
     }
 }
