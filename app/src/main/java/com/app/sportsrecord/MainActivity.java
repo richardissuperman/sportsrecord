@@ -48,8 +48,7 @@ public class MainActivity extends Activity {
             float y = sensorEvent.values[1];
             float z = sensorEvent.values[2];
             if ((y > 2 || y < -2) && !soundPlayer.isPlaying()) {
-                soundPlayer.tryPlaySound();
-                new Handler(Looper.getMainLooper()).post(() -> imageView.setVisibility(View.VISIBLE));
+              enterBasketSoundState();
             }
             String accString = x + "," + y + "," + z;
             accList.add(accString);
@@ -79,46 +78,23 @@ public class MainActivity extends Activity {
         }
     };
 
-    CountDownTimer startTimer = new CountDownTimer(4000, 1) {
-        @Override
-        public void onTick(long l) {
-            timerText.setText("Starting recording in " + (l / 1000) + " !");
-        }
-
-        @Override
-        public void onFinish() {
-            timerText.setText("Recording !");
-            toneGen1.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD);
-            startRecordingAcc();
-            startRecordingGyro();
-            recordTimer.start();
-        }
-    };
-
-    CountDownTimer recordTimer = new CountDownTimer(1500, 1) {
-        @Override
-        public void onTick(long l) {
-
-        }
-
-        @Override
-        public void onFinish() {
-
-            stopReccordingAcc();
-            stopReccordingGyro();
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    writingDataIntoFile();
-                }
-            }, 3000);
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+
+        initUI();
+
+        recordButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                enterStartCountDownState();
+                getRecordingTaskChain().startChainTasks();
+            }
+        });
+    }
+
+    private void initUI() {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         timerText = binding.timerText;
@@ -132,14 +108,64 @@ public class MainActivity extends Activity {
         }
 
         recordButton = binding.recordButton;
-        recordButton.setOnClickListener(new View.OnClickListener() {
+    }
+
+    private TimerTaskChain getRecordingTaskChain(){
+        TimerTaskChain timerTaskChain = new TimerTaskChain();
+        timerTaskChain.addTask(4000, new TimerTaskChain.Task() {
             @Override
-            public void onClick(View view) {
-                startTimer.start();
-                timerText.setVisibility(View.VISIBLE);
-                recordButton.setVisibility(View.GONE);
+            public void onTick(long l) {
+                enterCountDownState(l);
+            }
+
+            @Override
+            public void onFinished() {
+                enterRecordingState();
+                toneGen1.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD);
+                startRecordingAcc();
+                startRecordingGyro();
+            }
+        }).addTask(2000, new TimerTaskChain.Task() {
+
+            @Override
+            public void onFinished() {
+                stopReccordingAcc();
+                stopReccordingGyro();
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        writingDataIntoFile();
+                    }
+                }, 3000);
             }
         });
+        return timerTaskChain;
+    }
+
+    private void enterStartCountDownState(){
+        timerText.setVisibility(View.VISIBLE);
+        recordButton.setVisibility(View.GONE);
+    }
+
+    private void enterCountDownState(long remainingTime){
+        timerText.setText("Starting recording in " + (remainingTime / 1000) + " !");
+    }
+
+    private void enterRecordingState(){
+        timerText.setText("Recording !");
+    }
+
+    private void enterBasketSoundState(){
+        soundPlayer.tryPlaySound();
+        new Handler(Looper.getMainLooper()).post(() -> imageView.setVisibility(View.VISIBLE));
+    }
+
+    private void resetAllUI() {
+        recordButton.setText(R.string.start_recording);
+        timerText.setVisibility(View.GONE);
+        recordButton.setVisibility(View.VISIBLE);
+        imageView.setVisibility(View.GONE);
+        Toast.makeText(MainActivity.this, getString(R.string.finish_recording), Toast.LENGTH_LONG).show();
     }
 
     private void startRecordingAcc() {
@@ -197,13 +223,8 @@ public class MainActivity extends Activity {
                     finishHandler.post(new Runnable() {
                         @Override
                         public void run() {
-
-                            recordButton.setText(R.string.start_recording);
-                            timerText.setVisibility(View.GONE);
-                            recordButton.setVisibility(View.VISIBLE);
-                            imageView.setVisibility(View.GONE);
+                            resetAllUI();
                             clearData();
-                            Toast.makeText(MainActivity.this, getString(R.string.finish_recording), Toast.LENGTH_LONG).show();
                         }
                     });
                 } catch (Exception e) {
