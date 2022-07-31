@@ -5,7 +5,8 @@
     values-round/strings.xml for round devices.
     -->
     <string name="hello_world">Hello Square World!</string>
-    <string name="start_recording">Start recording</string>
+    <string name="start_recording_shooting_basket">Shooting basket</string>
+    <string name="start_recording_non_shooting_basket">Walking</string>
     <string name="stop_recording">Stop recording</string>
     <string name="finish_recording">Finish one recording!</string>
     <string name="finish_recording_failure">Failed to record!</string>
