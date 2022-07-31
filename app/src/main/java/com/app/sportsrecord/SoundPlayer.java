@@ -23,10 +23,6 @@ public class SoundPlayer {
             throw new RuntimeException("cant not start playing another soundtrack while current one is still playing");
         }
         try {
-            if (player != null) {
-                player.release();
-                player = null;
-            }
             startPlayingTimer();
             playingSound  = true;
             playSound();
@@ -52,6 +48,10 @@ public class SoundPlayer {
         new Handler(Looper.myLooper()).postDelayed(() -> {
             synchronized (SoundPlayer.this) {
                 playingSound = false;
+                if (player != null) {
+                    player.release();
+                    player = null;
+                }
             }
         }, PLAY_TIMEOUT_MS);
     }

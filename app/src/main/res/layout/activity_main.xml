@@ -14,29 +14,41 @@
         android:padding="@dimen/inner_frame_layout_padding"
         app:layout_boxedEdges="all">
 
-        <Button
-            android:id="@+id/record_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
             android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:text="@string/start_recording" />
+            android:layout_centerVertical="true">
+
+            <Button
+                android:id="@+id/record_shooting_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/start_recording_shooting_basket" />
+
+            <Button
+                android:id="@+id/record__nonshooting_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/start_recording_non_shooting_basket" />
+        </LinearLayout>
 
 
         <TextView
             android:id="@+id/timer_text"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+            android:layout_height="match_parent"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true" />
 
 
         <pl.droidsonroids.gif.GifImageView
             android:id="@+id/gif_imageview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="gone"
-            />
+            android:visibility="gone" />
 
     </RelativeLayout>
 </androidx.wear.widget.BoxInsetLayout>

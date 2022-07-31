@@ -2,16 +2,13 @@ package com.app.sportsrecord;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.ToneGenerator;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -22,6 +19,7 @@ import android.widget.Toast;
 
 import com.app.sportsrecord.databinding.ActivityMainBinding;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +29,8 @@ import pl.droidsonroids.gif.GifImageView;
 
 public class MainActivity extends Activity {
 
-    private Button recordButton;
+    private Button recordShootingButton;
+    private Button recordNonShootingButton;
     private TextView timerText;
     private GifImageView imageView;
     private ActivityMainBinding binding;
@@ -48,7 +47,7 @@ public class MainActivity extends Activity {
             float y = sensorEvent.values[1];
             float z = sensorEvent.values[2];
             if ((y > 2 || y < -2) && !soundPlayer.isPlaying()) {
-              enterBasketSoundState();
+                enterBasketSoundState();
             }
             String accString = x + "," + y + "," + z;
             accList.add(accString);
@@ -85,12 +84,13 @@ public class MainActivity extends Activity {
 
         initUI();
 
-        recordButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                enterStartCountDownState();
-                getRecordingTaskChain().startChainTasks();
-            }
+        recordShootingButton.setOnClickListener(view -> {
+            enterStartCountDownState();
+            getRecordingTaskChain(true).startChainTasks();
+        });
+        recordNonShootingButton.setOnClickListener(view -> {
+            enterStartCountDownState();
+            getRecordingTaskChain(false).startChainTasks();
         });
     }
 
@@ -101,16 +101,17 @@ public class MainActivity extends Activity {
         timerText.setVisibility(View.GONE);
         imageView = binding.gifImageview;
         try {
-            GifDrawable gifFromAssets = new GifDrawable( getAssets(), "giphy.gif" );
+            GifDrawable gifFromAssets = new GifDrawable(getAssets(), "giphy.gif");
             imageView.setImageDrawable(gifFromAssets);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        recordButton = binding.recordButton;
+        recordShootingButton = binding.recordShootingButton;
+        recordNonShootingButton = binding.recordNonshootingButton;
     }
 
-    private TimerTaskChain getRecordingTaskChain(){
+    private TimerTaskChain getRecordingTaskChain(boolean shootingBasket) {
         TimerTaskChain timerTaskChain = new TimerTaskChain();
         timerTaskChain.addTask(4000, new TimerTaskChain.Task() {
             @Override
@@ -131,39 +132,37 @@ public class MainActivity extends Activity {
             public void onFinished() {
                 stopReccordingAcc();
                 stopReccordingGyro();
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        writingDataIntoFile();
-                    }
-                }, 3000);
+                new Handler(Looper.getMainLooper()).postDelayed(() -> writingDataIntoFile(shootingBasket), 3000);
             }
         });
         return timerTaskChain;
     }
 
-    private void enterStartCountDownState(){
+    private void enterStartCountDownState() {
         timerText.setVisibility(View.VISIBLE);
-        recordButton.setVisibility(View.GONE);
+        recordShootingButton.setVisibility(View.GONE);
+        recordNonShootingButton.setVisibility(View.GONE);
     }
 
-    private void enterCountDownState(long remainingTime){
+    private void enterCountDownState(long remainingTime) {
         timerText.setText("Starting recording in " + (remainingTime / 1000) + " !");
     }
 
-    private void enterRecordingState(){
+    private void enterRecordingState() {
         timerText.setText("Recording !");
     }
 
-    private void enterBasketSoundState(){
+    private void enterBasketSoundState() {
         soundPlayer.tryPlaySound();
         new Handler(Looper.getMainLooper()).post(() -> imageView.setVisibility(View.VISIBLE));
     }
 
     private void resetAllUI() {
-        recordButton.setText(R.string.start_recording);
+        recordShootingButton.setText(R.string.start_recording_shooting_basket);
+        recordNonShootingButton.setText(R.string.start_recording_non_shooting_basket);
         timerText.setVisibility(View.GONE);
-        recordButton.setVisibility(View.VISIBLE);
+        recordShootingButton.setVisibility(View.VISIBLE);
+        recordNonShootingButton.setVisibility(View.VISIBLE);
         imageView.setVisibility(View.GONE);
         Toast.makeText(MainActivity.this, getString(R.string.finish_recording), Toast.LENGTH_LONG).show();
     }
@@ -198,28 +197,34 @@ public class MainActivity extends Activity {
         accList.clear();
     }
 
-    private void writingDataIntoFile() {
+    private void writingDataIntoFile(boolean shootingBasket) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 Handler finishHandler = new Handler(Looper.getMainLooper());
-
-                String fileNameAcc = MainActivity.this.getFilesDir()+"/" + System.currentTimeMillis() + "_" + "acc.txt";
-                String fileNameGyro = MainActivity.this.getFilesDir()+"/" +System.currentTimeMillis() + "_" + "gyro.txt";
+                String fileNameAcc;
+                String fileNameGyro;
+                if (shootingBasket) {
+                    fileNameAcc = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_" + "acc.txt";
+                    fileNameGyro = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_" + "gyro.txt";
+                } else {
+                    fileNameAcc = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_non_" + "acc.txt";
+                    fileNameGyro = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_non_" + "gyro.txt";
+                }
 
 
                 try {
-//                    FileWriter fileWriterAcc = new FileWriter(fileNameAcc, true);
-//                    for (String s : accList) {
-//                        fileWriterAcc.write(s + "\n");
-//                    }
-//                    fileWriterAcc.close();
-//
-//                    FileWriter fileWriterGyro = new FileWriter(fileNameGyro, true);
-//                    for (String s : gyroList) {
-//                        fileWriterGyro.write(s + "\n");
-//                    }
-//                    fileWriterGyro.close();
+                    FileWriter fileWriterAcc = new FileWriter(fileNameAcc, true);
+                    for (String s : accList) {
+                        fileWriterAcc.write(s + "\n");
+                    }
+                    fileWriterAcc.close();
+
+                    FileWriter fileWriterGyro = new FileWriter(fileNameGyro, true);
+                    for (String s : gyroList) {
+                        fileWriterGyro.write(s + "\n");
+                    }
+                    fileWriterGyro.close();
                     finishHandler.post(new Runnable() {
                         @Override
                         public void run() {
