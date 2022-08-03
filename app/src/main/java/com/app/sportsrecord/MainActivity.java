@@ -171,7 +171,7 @@ public class MainActivity extends Activity {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(accSensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(accSensorEventListener, sensor, SensorManager.SENSOR_DELAY_GAME);
     }
 
     private void stopReccordingAcc() {
@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        sensorManager.registerListener(gyroSensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(gyroSensorEventListener, sensor, SensorManager.SENSOR_DELAY_GAME);
     }
 
     private void stopReccordingGyro() {
