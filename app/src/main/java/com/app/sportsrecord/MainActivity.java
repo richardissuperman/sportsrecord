@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.app.sportsrecord.databinding.ActivityMainBinding;
+import com.opencsv.CSVWriter;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -171,7 +172,7 @@ public class MainActivity extends Activity {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(accSensorEventListener, sensor, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(accSensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     private void stopReccordingAcc() {
@@ -184,7 +185,7 @@ public class MainActivity extends Activity {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        sensorManager.registerListener(gyroSensorEventListener, sensor, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(gyroSensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     private void stopReccordingGyro() {
@@ -198,50 +199,43 @@ public class MainActivity extends Activity {
     }
 
     private void writingDataIntoFile(boolean shootingBasket) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Handler finishHandler = new Handler(Looper.getMainLooper());
-                String fileNameAcc;
-                String fileNameGyro;
-                if (shootingBasket) {
-                    fileNameAcc = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_" + "acc.txt";
-                    fileNameGyro = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_" + "gyro.txt";
+        new Thread(() -> {
+
+            Handler finishHandler = new Handler(Looper.getMainLooper());
+
+            try {
+
+                // write result file
+                PersistentCounter counter = new PersistentCounter(MainActivity.this);
+                int previousCount = counter.getCount();
+                int currentCount = ++previousCount;
+                CSVWriter resultFileWriter = new CSVWriter(new FileWriter(MainActivity.this.getFilesDir() + "/" + "result.csv", true));
+                if (previousCount == 0) {
+                    resultFileWriter.writeNext(new String[]{"1", shootingBasket ? "1" : "-1"});
                 } else {
-                    fileNameAcc = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_non_" + "acc.txt";
-                    fileNameGyro = MainActivity.this.getFilesDir() + "/" + System.currentTimeMillis() + "_non_" + "gyro.txt";
+                    resultFileWriter.writeNext(new String[]{currentCount + "", shootingBasket ? "1" : "-1"});
                 }
 
+                resultFileWriter.close();
 
-                try {
-                    FileWriter fileWriterAcc = new FileWriter(fileNameAcc, true);
-                    for (String s : accList) {
-                        fileWriterAcc.write(s + "\n");
-                    }
-                    fileWriterAcc.close();
 
-                    FileWriter fileWriterGyro = new FileWriter(fileNameGyro, true);
-                    for (String s : gyroList) {
-                        fileWriterGyro.write(s + "\n");
-                    }
-                    fileWriterGyro.close();
-                    finishHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            resetAllUI();
-                            clearData();
-                        }
-                    });
-                } catch (Exception e) {
-                    Log.e("richard", e.toString());
-                    finishHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, getString(R.string.finish_recording_failure), Toast.LENGTH_LONG).show();
-                        }
-                    });
+                // write gyro and acc data into one data file.
+                CSVWriter writer = new CSVWriter(new FileWriter(MainActivity.this.getFilesDir() + "/" + "record_" + currentCount + ".csv", true));
+                for (int i = 0; i < Math.min(accList.size(), gyroList.size()); i++) {
+                    String accString = accList.get(0);
+                    String gyroString = gyroList.get(0);
+                    String[] record = (accString + "," + gyroString).split(",");
+                    writer.writeNext(record);
                 }
+                writer.close();
+
+                counter.increaseCounter();
+            } catch (Exception e) {
+                e.printStackTrace();
+                finishHandler.post(() -> Toast.makeText(MainActivity.this, getString(R.string.finish_recording_failure), Toast.LENGTH_LONG).show());
             }
+            clearData();
+            finishHandler.post(() -> resetAllUI());
         }).start();
     }
 }
